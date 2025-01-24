@@ -1,4 +1,4 @@
-package com.goldtek.edi_serv.entity;
+package com.goldtek.edi_serv.api.entity;
 import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -153,6 +153,23 @@ public class SalesOrderDetailData {
     // 備品包裝量
     // TABLE: COPTD.TD052, 欄位型態: numeric, 欄位長度: 16.3, 預設值: 0, 欄位值須 >= 0, 欄位值不可空白
     private BigDecimal prepare_item_packing_qty;
+    
+    
+    //鎖定交期
+    private String lock_delivery_date;
+    
+    //營業稅率
+    private BigDecimal tax_rate;
+    
+    //計價數量 
+    private BigDecimal valuation_qty;
+    
+    private String valuation_unit;
+    
+    private BigDecimal discount_amount;
+    
+    private String exemption_identity;
+    
 
     // 優先順序
     // TABLE: COPTD.TD067, 欄位型態: nvarchar, 欄位長度: 5, 預設值: 00001
@@ -462,6 +479,54 @@ public class SalesOrderDetailData {
 		this.priority = priority;
 	}
 
+	public String getLock_delivery_date() {
+		return lock_delivery_date;
+	}
+
+	public void setLock_delivery_date(String lock_delivery_date) {
+		this.lock_delivery_date = lock_delivery_date;
+	}
+
+	public BigDecimal getTax_rate() {
+		return tax_rate;
+	}
+
+	public void setTax_rate(BigDecimal tax_rate) {
+		this.tax_rate = tax_rate;
+	}
+
+	public BigDecimal getValuation_qty() {
+		return valuation_qty;
+	}
+
+	public void setValuation_qty(BigDecimal valuation_qty) {
+		this.valuation_qty = valuation_qty;
+	}
+
+	public String getValuation_unit() {
+		return valuation_unit;
+	}
+
+	public void setValuation_unit(String valuation_unit) {
+		this.valuation_unit = valuation_unit;
+	}
+
+	public BigDecimal getDiscount_amount() {
+		return discount_amount;
+	}
+
+	public void setDiscount_amount(BigDecimal discount_amount) {
+		this.discount_amount = discount_amount;
+	}
+
+	public String getExemption_identity() {
+		return exemption_identity;
+	}
+
+	public void setExemption_identity(String exemption_identity) {
+		this.exemption_identity = exemption_identity;
+	}
+
 	@Override
 	public String toString() {
 		return "SalesOrderDetailData [so_type_no=" + so_type_no + ", so_no=" + so_no + ", so_seq=" + so_seq
@@ -477,9 +542,13 @@ public class SalesOrderDetailData {
 				+ packing_unit + ", requisitions_purchase_supplier_no=" + requisitions_purchase_supplier_no
 				+ ", item_graph_no=" + item_graph_no + ", source=" + source + ", item_graph_no_version="
 				+ item_graph_no_version + ", type=" + type + ", prepare_item_qty=" + prepare_item_qty
-				+ ", prepare_item_packing_qty=" + prepare_item_packing_qty + ", priority=" + priority + "]";
+				+ ", prepare_item_packing_qty=" + prepare_item_packing_qty + ", lock_delivery_date="
+				+ lock_delivery_date + ", tax_rate=" + tax_rate + ", valuation_qty=" + valuation_qty
+				+ ", valuation_unit=" + valuation_unit + ", discount_amount=" + discount_amount
+				+ ", exemption_identity=" + exemption_identity + ", priority=" + priority + "]";
 	}
-    
+
+	
     
     
 }

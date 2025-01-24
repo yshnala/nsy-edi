@@ -1,4 +1,4 @@
-package com.goldtek.edi_serv.entity;
+package com.goldtek.edi_serv.api.entity;
 
 import java.util.List;
 import java.util.Map;

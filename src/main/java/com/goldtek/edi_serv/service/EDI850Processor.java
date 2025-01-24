@@ -6,9 +6,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import com.goldtek.edi_serv.entity.Address;
-import com.goldtek.edi_serv.entity.OrderLine;
-import com.goldtek.edi_serv.entity.PurchaseOrder;
+import com.goldtek.edi_serv.api.entity.Address;
+import com.goldtek.edi_serv.api.entity.OrderLine;
+import com.goldtek.edi_serv.api.entity.PurchaseOrder;
 
 // 主要的EDI處理類
 public class EDI850Processor {

@@ -5,7 +5,6 @@ import java.io.OutputStream;
 
 import org.springframework.stereotype.Service;
 
-import com.goldtek.edi_serv.entity.Isa;
 
 import io.xlate.edi.stream.EDIOutputFactory;
 import io.xlate.edi.stream.EDIStreamConstants;
@@ -158,17 +157,6 @@ public class Edi810ServiceImpl implements Edi810Service{
 	}
 
 	
-	/**
-	 * 	以下是 ISA 段的詳細解析與說明：
-		ISA 段格式 (Interchange Control Header)
-		ISA 段用於描述整個 EDI 文件交換的標頭信息，定義了交換的來源、目的、時間、控制信息以及分隔符的用法。
-	 */
-	public void ISA(){
-		Isa isa =new Isa();
-		
-		
-		
-//		String isa ="ISA*00*          *00*          *ZZ*GTec123456789  *ZZ*PARTNER001     *20250108*1234*U*00401*000000001*0*P*>~";
-	}
+
 	
 }

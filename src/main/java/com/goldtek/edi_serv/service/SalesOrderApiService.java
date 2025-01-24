@@ -1,6 +1,7 @@
 package com.goldtek.edi_serv.service;
 
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +22,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.goldtek.edi_serv.api.bean.ErpApiBean;
 import com.goldtek.edi_serv.api.bean.StdData;
 import com.goldtek.edi_serv.api.bean.Wrapper;
+import com.goldtek.edi_serv.api.entity.SalesOrderHeadData;
+import com.goldtek.edi_serv.api.entity.StdDataQueryRequest;
+import com.goldtek.edi_serv.api.entity.StdDataQueryRequest.AllConditions;
+import com.goldtek.edi_serv.api.entity.StdDataQueryRequest.Conditions;
+import com.goldtek.edi_serv.api.entity.StdDataQueryRequest.Field;
+import com.goldtek.edi_serv.api.entity.StdDataQueryRequest.Order;
+import com.goldtek.edi_serv.api.entity.StdDataQueryRequest.ParameterQuery;
+import com.goldtek.edi_serv.api.entity.StdDataQueryRequest.StdDataQuery;
 import com.goldtek.edi_serv.api.utils.Base64SHA256;
 import com.goldtek.edi_serv.api.utils.ErpHttpUrl;
-import com.goldtek.edi_serv.entity.SalesOrderHeadData;
-import com.goldtek.edi_serv.entity.StdDataQueryRequest;
-import com.goldtek.edi_serv.entity.StdDataQueryRequest.AllConditions;
-import com.goldtek.edi_serv.entity.StdDataQueryRequest.Conditions;
-import com.goldtek.edi_serv.entity.StdDataQueryRequest.Field;
-import com.goldtek.edi_serv.entity.StdDataQueryRequest.Order;
-import com.goldtek.edi_serv.entity.StdDataQueryRequest.ParameterQuery;
-import com.goldtek.edi_serv.entity.StdDataQueryRequest.StdDataQuery;
+import com.goldtek.edi_serv.entity.edi.ApiLog;
+import com.goldtek.edi_serv.entity.erp.SalesOrderHeadDataId;
+import com.goldtek.edi_serv.repostory.edi.ApiLogRepository;
 import com.google.gson.Gson;
 
 /**
@@ -63,12 +68,17 @@ public class SalesOrderApiService {
 	private String apiName;
 	
 	
+	@Autowired
+	ApiLogRepository apiLogRepository;
+	
+	
 	static final Logger logger = LoggerFactory.getLogger(SalesOrderApiService.class);
 
-	public Map<String,List<String>> create(List<SalesOrderHeadData> salesOrderHeadDataList) {
+//	public Map<String,List<String>> create(List<SalesOrderHeadData> salesOrderHeadDataList) {
+	public boolean create(List<SalesOrderHeadData> salesOrderHeadDataList) {
 		String json = getCreateRequest(salesOrderHeadDataList);
-//		Map<String,List<String>> successList =  sendCreateApi(json);
-		return null;
+//		Map<String,List<String>> result =  sendCreateApi(json);
+		return sendCreateApi(json);
 	}
 	
 	
@@ -112,6 +122,60 @@ public class SalesOrderApiService {
 		return json;
 	}
 	
+	
+	public String getApprovalRequest(List<SalesOrderHeadDataId> successList) {
+		String json = "";
+//		LocalDateTime now = LocalDateTime.now();
+//
+//		// 定義日期格式
+//		DateTimeFormatter formatter1 = DateTimeFormatter.ofPattern("yyyyMMdd");
+//		DateTimeFormatter formatter2 = DateTimeFormatter.ofPattern("yyyyMM");
+//
+//		// 格式化時間
+//		String yyyyMmDd = now.format(formatter1);
+//		String yyyyMm = now.format(formatter2);
+		try {
+			
+			// 創建參數結構
+			Map<String, Object> parameter = new HashMap<>();
+			parameter.put("enterprise_no", companyId);
+			SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+			List<Map<String,Object>> list = new ArrayList();
+			
+			for(SalesOrderHeadDataId id :successList) {
+				Map<String,Object> map = new HashMap();
+				map.put("so_type_no", id.getSoTypeNo());
+				map.put("so_no", id.getSoNo());
+				map.put("docdate", id.getDocDate());
+				map.put("approvedate", formatter.format(new Date()));
+				list.add(map);
+			}
+			
+			parameter.put("enterprise_no", companyId);
+			parameter.put("datakeys", list);
+			
+			// 創建 std_data 結構
+			Map<String, Object> stdData = new HashMap<>();
+			stdData.put("parameter", parameter);
+
+			// 創建最終的 JSON 結構
+			Map<String, Object> finalJson = new HashMap<>();
+			finalJson.put("std_data", stdData);
+
+			// 使用 Jackson 轉換為 JSON 字串
+			ObjectMapper objectMapper = new ObjectMapper();
+			String jsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(finalJson);
+
+			json = jsonString;
+			// 列印查詢的 JSON
+			logger.info("PurchaseOrderApiService...getCreateRequest...Create Json = " + json);
+
+		} catch (Exception e) {
+			logger.info("PurchaseOrderApiService...getCreateRequest...Exception : " + e);
+		}
+
+		return json;
+	}
 	
 //	public 	List<PurchaseOrderDTO> query(String vendorCode){
 //		logger.info("call PurchaseOrderApiService query API...");
@@ -336,14 +400,16 @@ public class SalesOrderApiService {
 	 *建立PO資料，wf.oapi.purchase.order.data.create
 	 *                                                                          
 	 */
-	public Map<String,List<String>> sendCreateApi(String body) {
+//	public Map<String,List<String>> sendCreateApi(String body) {
+	public boolean sendCreateApi(String body) {
 		System.out.println("---PurchaseOrderApiService.sendCreateApi...");
         List<String> resultList = new ArrayList();
         List<String> errorList = new ArrayList();
         Map<String,List<String>> resultMap =new HashMap();
+        JSONArray errorArray = null;
 		try {
 			//呼叫的 API名稱
-			String apiName = "wf.oapi.purchase.order.data.create";
+			String apiName = "wf.oapi.sales.order.data.create";
 			
 			//設定header參數
     		ErpApiBean bean = new ErpApiBean(apiName, companyId, sys, body, appKey, secretKey, wfAccount, area);
@@ -378,61 +444,59 @@ public class SalesOrderApiService {
                 // 輸出 success 節點的內容
                 for (int i = 0; i < successArray.length(); i++) {
                 	JSONObject successItem = successArray.getJSONObject(i);
-                    logger.info("purchase_type_no: " + successItem.getString("purchase_type_no"));
-                    logger.info("purchase_no: " + successItem.getString("purchase_no"));
-                    logger.info("msg: " + successItem.getString("msg"));
-                    resultList.add(successItem.getString("purchase_type_no") + "_" + successItem.getString("purchase_no"));
+                	resultList.add(successItem.getString("so_type_no") + "_" + successItem.getString("so_no"));
                 }
-                logger.info("successArray:"+successArray);
                 resultMap.put("success", resultList);
                 
                 
-                JSONArray errorArray = jsonObject.getJSONObject("std_data")
+                errorArray = jsonObject.getJSONObject("std_data")
                         .getJSONObject("parameter")
                         .getJSONObject("result")
                         .getJSONArray("error");
                 logger.info("errorArray:"+errorArray);
                 
+                logger.info("errorArray isEmpty:"+errorArray.isEmpty());
                 
                 ObjectMapper objectMapper = new ObjectMapper();
                 Object js= objectMapper.readValue(json, Object.class);
-//                ApiLog apilog = new ApiLog();
-//                apilog.setCreateTime(new Date());
-//                apilog.setCode(Integer.parseInt(code));
-//                apilog.setApiName(apiName);
-//                String minifiedJson = objectMapper.writeValueAsString(js);
-//                apilog.setJson(minifiedJson);
-//                apilog.setError(errorArray.toString());
-//                apiService.save(apilog);
+                
+                ApiLog apilog = new ApiLog();
+                apilog.setCreateTime(new Date());
+                apilog.setCode(Integer.parseInt(code));
+                apilog.setApiName(apiName);
+                String minifiedJson = objectMapper.writeValueAsString(js);
+                String minifiedBody = objectMapper.writeValueAsString(body);
+                
+                apilog.setRequest(minifiedBody);
+                apilog.setResponse(minifiedJson);
+                apilog.setErrorMsg(errorArray.toString());
+                apiLogRepository.save(apilog);
                 
                 
-                List<JSONArray> detailArrays = new ArrayList<>();
-               
-				// 遍歷 error array
-				for (int i = 0; i < errorArray.length(); i++) {
-					// 取得每個 error 物件中的 detail_of_purchase_order_data
-					JSONArray detailArray = errorArray.getJSONObject(i).getJSONObject("data")
-							.getJSONObject("header_of_purchase_order_data")
-							.getJSONArray("detail_of_purchase_order_data");
-					detailArrays.add(detailArray);
-				}
-				// 遍歷所有明細
-				for (JSONArray detailArray : detailArrays) {
-				    for (int i = 0; i < detailArray.length(); i++) {
-				        JSONObject detail = detailArray.getJSONObject(i);
-				        // 取得各個欄位值
-				        String purchaseTypeNo = detail.getString("purchase_type_no");
-				        String serialNo = detail.getString("serial_no");
-				        String itemNo = detail.getString("item_no");
-		                logger.info("錯誤SAP單號&項次:"+detail.getString("remarks"));
-		                errorList.add(detail.getString("remarks"));
-				    }
-				}
-				 resultMap.put("error", errorList);
+//                List<JSONArray> detailArrays = new ArrayList<>();
+//               
+//				// 遍歷 error array
+//				for (int i = 0; i < errorArray.length(); i++) {
+//					// 取得每個 error 物件中的 detail_of_purchase_order_data
+//					JSONArray detailArray = errorArray.getJSONObject(i).getJSONObject("data")
+//							.getJSONObject("sales_order_head_data")
+//							.getJSONArray("sales_order_detail_data");
+//					detailArrays.add(detailArray);
+//				}
+//				// 遍歷所有明細
+//				for (JSONArray detailArray : detailArrays) {
+//				    for (int i = 0; i < detailArray.length(); i++) {
+//				        JSONObject detail = detailArray.getJSONObject(i);
+//				        // 取得各個欄位值
+//				        String sotypeNo = detail.getString("4500675404");
+//				    String soSeq = detail.getString("so_seq");
+//		                errorList.add(detail.getString("remarks"));
+//				    }
+//				}
+//				 resultMap.put("error", errorList);
 				
             }
 
-            logger.info("*****"+resultMap);
             
             
             //顯示執行結果
@@ -445,7 +509,12 @@ public class SalesOrderApiService {
 		}catch (Exception e) {
     		System.out.println("PurchaseOrderApiService...sendCreateApi...Exception : " + e);
 		}
-		return resultMap;
+//		return resultMap;
+		
+		if(errorArray.isEmpty())
+			return true;
+		else
+			return false;
 	}
 	
 	
@@ -486,4 +555,118 @@ public class SalesOrderApiService {
 	        
 	        return errorList;
 	    }
+
+
+	public void approve(List<SalesOrderHeadDataId> successList) {
+		String json = getApprovalRequest(successList);
+		sendApproveApi(json);
+		
+	}
+	
+	
+	
+	public Map<String,List<String>> sendApproveApi(String body) {
+		System.out.println("---PurchaseOrderApiService.sendCreateApi...");
+        List<String> resultList = new ArrayList();
+        List<String> errorList = new ArrayList();
+        Map<String,List<String>> resultMap =new HashMap();
+		try {
+			//呼叫的 API名稱
+			String apiName = "wf.oapi.sales.order.data.approve";
+			
+			//設定header參數
+    		ErpApiBean bean = new ErpApiBean(apiName, companyId, sys, body, appKey, secretKey, wfAccount, area);
+    		
+			//呼叫新 WEB API
+			ErpHttpUrl rest = new ErpHttpUrl();
+			String result = rest.POST(url, bean);
+			
+			//將API回傳的JSON結果轉為明碼
+			String json = bean.getDeCodeResult();
+    		System.out.println("PurchaseOrderApiService...sendCreateApi...apiName = " + apiName + "...鼎新回傳結果...decodeToString.result = " + Base64SHA256.decodeToString(bean.getResult()));
+			
+    		//把呼叫的明碼結果轉為JavaBean
+            Gson gson = new Gson();
+            Wrapper wrapper = gson.fromJson(json, Wrapper.class);
+            StdData stdData = wrapper.getStdData();
+
+            
+            JSONObject jsonObject = new JSONObject(json);
+            // 取得 "code" 節點的值
+            String code = jsonObject.getJSONObject("std_data")
+                                    .getJSONObject("execution")
+                                    .getString("code");
+    		
+           
+            if ("0".equals(code)) {
+                // 取得 "success" 節點的值
+                JSONArray successArray = jsonObject.getJSONObject("std_data")
+                                                   .getJSONObject("parameter")
+                                                   .getJSONObject("result")
+                                                   .getJSONArray("success");
+                // 輸出 success 節點的內容
+                for (int i = 0; i < successArray.length(); i++) {
+                	JSONObject successItem = successArray.getJSONObject(i);
+                    logger.info("so_type_no: " + successItem.getString("so_type_no"));
+                    logger.info("so_no: " + successItem.getString("so_no"));
+                    logger.info("msg: " + successItem.getString("msg"));
+                    resultList.add(successItem.getString("so_type_no") + "_" + successItem.getString("so_no"));
+                }
+                logger.info("successArray:"+successArray);
+                resultMap.put("success", resultList);
+                
+//                
+//                JSONArray errorArray = jsonObject.getJSONObject("std_data")
+//                        .getJSONObject("parameter")
+//                        .getJSONObject("result")
+//                        .getJSONArray("error");
+//                logger.info("errorArray:"+errorArray);
+//                
+//                
+//                ObjectMapper objectMapper = new ObjectMapper();
+//                Object js= objectMapper.readValue(json, Object.class);
+//
+//                
+//                
+//                List<JSONArray> detailArrays = new ArrayList<>();
+               
+				// 遍歷 error array
+//				for (int i = 0; i < errorArray.length(); i++) {
+//					// 取得每個 error 物件中的 detail_of_purchase_order_data
+//					JSONArray detailArray = errorArray.getJSONObject(i).getJSONObject("data")
+//							.getJSONObject("header_of_purchase_order_data")
+//							.getJSONArray("detail_of_purchase_order_data");
+//					detailArrays.add(detailArray);
+//				}
+//				// 遍歷所有明細
+//				for (JSONArray detailArray : detailArrays) {
+//				    for (int i = 0; i < detailArray.length(); i++) {
+//				        JSONObject detail = detailArray.getJSONObject(i);
+//				        // 取得各個欄位值
+//				        String purchaseTypeNo = detail.getString("purchase_type_no");
+//				        String serialNo = detail.getString("serial_no");
+//				        String itemNo = detail.getString("item_no");
+//		                logger.info("錯誤SAP單號&項次:"+detail.getString("remarks"));
+//		                errorList.add(detail.getString("remarks"));
+//				    }
+//				}
+//				 resultMap.put("error", errorList);
+				
+            }
+
+            logger.info("*****"+resultMap);
+            
+            
+            //顯示執行結果
+            System.out.println("PurchaseOrderApiService...sendCreateApi...stdData.getExecution().getDescription() = " + stdData.getExecution().getDescription());
+    		if ("-1".equals(stdData.getExecution().getCode())) {
+                System.out.println("PurchaseOrderApiService...sendCreateApi...stdData.getExecution().getDescription() = " + stdData.getParameter().getResult().getError().get(0).getMessage());
+    		}
+    		System.out.println("PurchaseOrderApiService...sendCreateApi...stdData.toString() = " + stdData.toString());
+    		
+		}catch (Exception e) {
+    		System.out.println("PurchaseOrderApiService...sendCreateApi...Exception : " + e);
+		}
+		return resultMap;
+	}
 }

@@ -1,4 +1,4 @@
-package com.goldtek.edi_serv.entity;
+package com.goldtek.edi_serv.api.entity;
 // 地址類
 public class Address {
     private String name;
